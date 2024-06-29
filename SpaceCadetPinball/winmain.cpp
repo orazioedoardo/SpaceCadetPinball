@@ -2,6 +2,7 @@
 #include "winmain.h"
 
 #include "control.h"
+#include "EmbeddedData.h"
 #include "fullscrn.h"
 #include "midi.h"
 #include "options.h"
@@ -129,6 +130,23 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 		}
 		else
 			mixOpened = true;
+	}
+
+	{
+		// Load SDL Game Controller definitions from DB
+		unsigned decompressedSize{};
+		const auto controllerDb = ImFontAtlas::DecompressCompressedStbData(
+			EmbeddedData::SDL_GameControllerDB_compressed_data,
+			EmbeddedData::SDL_GameControllerDB_compressed_size,
+			decompressedSize);
+		auto rw = SDL_RWFromMem(controllerDb, decompressedSize);
+		const auto added = SDL_GameControllerAddMappingsFromRW(rw, 1);
+		IM_FREE(controllerDb);
+		if (added < 0)
+		{
+			printf("Could not load game controller DB.\nSDL Error: %s\n", SDL_GetError());
+			SDL_ClearError();
+		}
 	}
 
 	auto resetAllOptions = strstr(lpCmdLine, "-reset") != nullptr;
@@ -436,32 +454,21 @@ void winmain::MainLoop()
 
 void winmain::RenderUi()
 {
-	// A minimal window with a button to prevent menu lockout.
-	if (!Options.ShowMenu)
+	// Transparent menu bar with a button for preventing menu lockout.
+	ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4{});
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{});
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+	if (!Options.ShowMenu && ImGui::BeginMainMenuBar())
 	{
-		ImGui::SetNextWindowPos(ImVec2{});
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{10, 0});
-		if (ImGui::Begin("main", nullptr,
-		                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground |
-		                 ImGuiWindowFlags_AlwaysAutoResize |
-		                 ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoFocusOnAppearing))
+		if (ImGui::MenuItem("Menu"))
 		{
-			ImGui::PushID(1);
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{});
-			if (ImGui::Button("Menu"))
-			{
-				options::toggle(Menu1::Show_Menu);
-			}
-			ImGui::PopStyleColor(1);
-			ImGui::PopID();
-		}
-		ImGui::End();
-		ImGui::PopStyleVar();
-
-		// This window can not loose nav focus for some reason, clear it manually.
-		if (ImGui::IsKeyDown(ImGuiKey_Escape) || ImGui::IsKeyDown(ImGuiKey_GamepadFaceRight))
+			options::toggle(Menu1::Show_Menu);
 			ImGui::FocusWindow(nullptr);
+		}
+		ImGui::EndMainMenuBar();
 	}
+	ImGui::PopStyleVar(1);
+	ImGui::PopStyleColor(2);
 
 	// No demo window in release to save space
 #ifndef NDEBUG
@@ -1366,7 +1373,7 @@ void winmain::RenderFrameTimeDialog()
 			sprintf(overlay, "avg %.3fms, dev %.3fms", average, dev);
 
 			auto region = ImGui::GetContentRegionAvail();
-			ImGui::PlotLines("Lines", gfrDisplay.data(), gfrDisplay.size(),
+			ImGui::PlotLines("Lines", gfrDisplay.data(), static_cast<int>(gfrDisplay.size()),
 			                 scrollPlot ? gfrOffset : 0, overlay, 0, yMax, region);
 		}
 	}
