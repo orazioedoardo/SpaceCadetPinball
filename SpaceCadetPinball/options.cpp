@@ -24,14 +24,14 @@ optionsStruct options::Options
 		{
 			"Left Flipper key",
 			Msg::KEYMAPPER_FlipperL,
-			{InputTypes::Keyboard, SDLK_z},
+			{InputTypes::Keyboard, SDLK_LALT},
 			{InputTypes::Mouse, SDL_BUTTON_LEFT},
 			{InputTypes::GameController, SDL_CONTROLLER_BUTTON_LEFTSHOULDER}
 		},
 		{
 			"Right Flipper key",
 			Msg::KEYMAPPER_FlipperR,
-			{InputTypes::Keyboard, SDLK_SLASH},
+			{InputTypes::Keyboard, SDLK_RALT},
 			{InputTypes::Mouse,SDL_BUTTON_RIGHT},
 			{InputTypes::GameController, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER}
 		},
@@ -45,14 +45,14 @@ optionsStruct options::Options
 		{
 			"Left Table Bump key",
 			Msg::KEYMAPPER_BumpLeft,
-			{InputTypes::Keyboard, SDLK_x},
+			{InputTypes::Keyboard, SDLK_RIGHT},
 			{InputTypes::Mouse,SDL_BUTTON_X1},
 			{InputTypes::GameController, SDL_CONTROLLER_BUTTON_DPAD_LEFT}
 		},
 		{
 			"Right Table Bump key",
 			Msg::KEYMAPPER_BumpRight,
-			{InputTypes::Keyboard, SDLK_PERIOD},
+			{InputTypes::Keyboard, SDLK_LEFT},
 			{InputTypes::Mouse,SDL_BUTTON_X2},
 			{InputTypes::GameController, SDL_CONTROLLER_BUTTON_DPAD_RIGHT}
 		},
@@ -121,13 +121,13 @@ optionsStruct options::Options
 		},
 	},
 	{"Sounds", true},
-	{"Music", false},
-	{"FullScreen", false},
+	{"Music", true},
+	{"FullScreen", true},
 	{"Players", 1},
 	{"Screen Resolution", -1},
-	{"UI Scale", 1.0f},
+	{"UI Scale", 1.5f},
 	{"Uniform scaling", true},
-	{"Linear Filtering", true},
+	{"Linear Filtering", false},
 	{"Frames Per Second", DefFps},
 	{"Updates Per Second", DefUps},
 	{"ShowMenu", true},
