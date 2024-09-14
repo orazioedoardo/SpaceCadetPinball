@@ -49,6 +49,7 @@ cp -a Platform/macOS/Info.plist SpaceCadetPinball.app/Contents/
 cp -a Platform/macOS/SpaceCadetPinball.icns SpaceCadetPinball.app/Contents/Resources/
 cp -a Libs/SDL2.framework SpaceCadetPinball.app/Contents/Frameworks/
 cp -a Libs/SDL2_mixer.framework SpaceCadetPinball.app/Contents/Frameworks/
+cp -a assets/* SpaceCadetPinball.app/Contents/Resources/
 cp -a bin/SpaceCadetPinball SpaceCadetPinball.app/Contents/MacOS/
 
 sed -i '' "s/CHANGEME_SW_VERSION/$sw_version/" SpaceCadetPinball.app/Contents/Info.plist
