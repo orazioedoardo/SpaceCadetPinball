@@ -110,6 +110,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 		printf("Using SDL renderer: %s\n", rendererInfo.name);
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
+	SDL_SetHint("SDL_FORCE_SOUNDFONTS", "1");
 
 	auto prefPath = SDL_GetPrefPath("", "SpaceCadetPinball");
 	auto basePath = SDL_GetBasePath();
@@ -203,11 +204,16 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 		ImGui_ImplSDL2_InitForSDLRenderer(window, Renderer);
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableGamepad;
 
-		// Data search order: WD, executable path, user pref path, platform specific paths.
+		auto appImagePath = std::string(basePath) + "../../assets/";
+
+		// Data search order: WD, AppImage assets path, executable path, user pref path, platform specific paths.
 		std::vector<const char*> searchPaths
 		{
 			{
 				"",
+#if defined(__unix__)
+				appImagePath.c_str(),
+#endif
 				basePath,
 				prefPath
 			}
