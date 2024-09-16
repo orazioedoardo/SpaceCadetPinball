@@ -32,7 +32,7 @@ jobs:
 
       - run: |
           sudo apt update
-          sudo apt install -y desktop-file-utils libsdl2-dev libsdl2-mixer-dev
+          sudo apt install -y desktop-file-utils libsdl2-mixer-dev
 
       - run: ./build-linux-app.sh
 
@@ -61,7 +61,7 @@ jobs:
 
           install: |
             apt update
-            apt install -y build-essential cmake curl libsdl2-dev libsdl2-mixer-dev
+            apt install -y build-essential cmake curl libsdl2-mixer-dev
 
           run: ./build-linux-app.sh --prepare-github-actions
 

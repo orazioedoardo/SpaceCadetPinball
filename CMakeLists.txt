@@ -29,6 +29,12 @@ if(APPLE)
     list(APPEND SDL2_MIXER_PATH "${CMAKE_CURRENT_LIST_DIR}/Libs")
 endif()
 
+if(UNIX AND NOT APPLE)
+    cmake_policy(SET CMP0074 NEW)
+    # Takes precedence over the system library
+    set(SDL2_ROOT "${CMAKE_CURRENT_LIST_DIR}/Libs/SDL2")
+endif()
+
 # SDL2main is not needed
 set(SDL2_BUILDING_LIBRARY ON)
 

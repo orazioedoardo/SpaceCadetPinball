@@ -6,6 +6,10 @@ system_arch="$(uname -m)"
 
 sw_version="2.1.1"
 
+sdl_version="2.0.20"
+sdl_filename="SDL2-$sdl_version.tar.gz"
+sdl_url="https://github.com/libsdl-org/SDL/releases/download/release-$sdl_version/$sdl_filename"
+
 # These are rolling versions, it shouldn't be assumed that a subsequent build will use the same tool and runtime code
 appimagetool_version="continuous"
 appimagetool_filename="appimagetool-$system_arch.AppImage"
@@ -17,7 +21,6 @@ runtime_baseurl="https://github.com/AppImage/type2-runtime/releases/download/$ru
 
 # Shared libraries as of Ubuntu 20.04
 required_libs=(
-	libSDL2-2.0.so.0
 	libSDL2_mixer-2.0.so.0
 
 	libFLAC.so.8
@@ -33,9 +36,21 @@ required_libs=(
 	libXss.so.1
 )
 
-required_libs_2=(
-	libopusfile.so.0
-)
+if [ ! -f "$sdl_filename" ]; then
+	curl -sSf -L -O "$sdl_url"
+	echo "c56aba1d7b5b0e7e999e4a7698c70b63a3394ff9704b5f6e1c57e0c16f04dd06  $sdl_filename" | shasum -a 256 -c
+	tar xf "$sdl_filename"
+fi
+
+pushd "SDL2-$sdl_version"
+cmake -S . -B build -DCMAKE_INSTALL_PREFIX="install"
+cmake --build build -j "$(nproc)"
+cmake --install build
+popd
+
+mkdir -p Libs/SDL2
+
+mv "SDL2-$sdl_version"/install/* Libs/SDL2/
 
 cmake -S . -B build
 cmake --build build -j "$(nproc)"
@@ -50,12 +65,14 @@ cp -a Platform/Linux/SpaceCadetPinball.desktop SpaceCadetPinball.AppDir/usr/shar
 cp -a SpaceCadetPinball/Icon_192x192.png SpaceCadetPinball.AppDir/SpaceCadetPinball.png
 cp -a /usr/share/sounds/sf2/TimGM6mb.sf2 SpaceCadetPinball.AppDir/usr/share/sounds/
 
+# Locally built SDL library
+cp -a -L Libs/SDL2/lib/libSDL2-2.0.so.0 SpaceCadetPinball.AppDir/usr/lib/
+
+# For some reason this library is not in /lib/$system_arch-linux-gnu/$lib
+cp -a -L /usr/lib/libopusfile.so.0 SpaceCadetPinball.AppDir/usr/lib/
+
 for lib in "${required_libs[@]}"; do
 	cp -a -L "/lib/$system_arch-linux-gnu/$lib" SpaceCadetPinball.AppDir/usr/lib/
-done
-
-for lib in "${required_libs_2[@]}"; do
-	cp -a -L "/usr/lib/$lib" SpaceCadetPinball.AppDir/usr/lib/
 done
 
 if [ "$1" = "--prepare-github-actions" ]; then
