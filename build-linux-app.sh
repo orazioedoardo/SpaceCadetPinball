@@ -21,6 +21,7 @@ required_libs=(
 	libSDL2-2.0.so.0
 
 	libbsd.so.0
+	libdecor-0.so.0
 	libFLAC.so.8
 	libfluidsynth.so.3
 	libinstpatch-1.0.so.2
