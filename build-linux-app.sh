@@ -20,9 +20,11 @@ required_libs=(
 	libSDL2_mixer-2.0.so.0
 	libSDL2-2.0.so.0
 
+	libbsd.so.0
 	libFLAC.so.8
 	libfluidsynth.so.3
 	libinstpatch-1.0.so.2
+	libmd.so.0
 	libmodplug.so.1
 	libogg.so.0
 	libopus.so.0
