@@ -23,7 +23,7 @@ jobs:
           path: SpaceCadetPinball-*-mac.dmg
 
   build-linux-appimage-x86_64:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +32,7 @@ jobs:
 
       - run: |
           sudo apt update
-          sudo apt install -y desktop-file-utils libsdl2-mixer-dev
+          sudo apt install -y desktop-file-utils libsdl2-dev libsdl2-mixer-dev
 
       - run: ./build-linux-app.sh
 
@@ -42,43 +42,20 @@ jobs:
           path: SpaceCadetPinball-*-linux-x86_64.AppImage
 
   build-linux-appimage-aarch64:
-    runs-on: ubuntu-20.04
-    timeout-minutes: 30
+    runs-on: ubuntu-22.04-arm
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
           ref: master
 
-      - run: mkdir -p artifacts
-
-      - uses: uraimo/run-on-arch-action@v2
-        with:
-          arch: aarch64
-          distro: ubuntu20.04
-          githubToken: ${{ github.token }}
-
-          dockerRunArgs: --volume "${PWD}/artifacts:/artifacts"
-
-          install: |
-            apt update
-            apt install -y build-essential cmake curl libsdl2-mixer-dev
-
-          run: ./build-linux-app.sh --prepare-github-actions
-
       - run: |
           sudo apt update
-          sudo apt install -y desktop-file-utils
+          sudo apt install -y desktop-file-utils libsdl2-dev libsdl2-mixer-dev
 
-          cd artifacts
-
-          archive_file="$(echo SpaceCadetPinball-*-linux-aarch64.tar)"
-          appimage_file="${archive_file%.*}.AppImage"
-
-          tar xf "$archive_file"
-
-          ./appimagetool-x86_64.AppImage --runtime-file runtime-aarch64 --no-appstream SpaceCadetPinball.AppDir "$appimage_file"
+      - run: ./build-linux-app.sh
 
       - uses: actions/upload-artifact@v4
         with:
           name: linux-build-aarch64
-          path: artifacts/SpaceCadetPinball-*-linux-aarch64.AppImage
+          path: SpaceCadetPinball-*-linux-aarch64.AppImage

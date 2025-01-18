@@ -6,10 +6,6 @@ system_arch="$(uname -m)"
 
 sw_version="2.1.1"
 
-sdl_version="2.0.20"
-sdl_filename="SDL2-$sdl_version.tar.gz"
-sdl_url="https://github.com/libsdl-org/SDL/releases/download/release-$sdl_version/$sdl_filename"
-
 # These are rolling versions, it shouldn't be assumed that a subsequent build will use the same tool and runtime code
 appimagetool_version="continuous"
 appimagetool_filename="appimagetool-$system_arch.AppImage"
@@ -19,12 +15,13 @@ runtime_version="continuous"
 runtime_filename="runtime-$system_arch"
 runtime_baseurl="https://github.com/AppImage/type2-runtime/releases/download/$runtime_version"
 
-# Shared libraries as of Ubuntu 20.04
+# Shared libraries as of Ubuntu 22.04
 required_libs=(
 	libSDL2_mixer-2.0.so.0
+	libSDL2-2.0.so.0
 
 	libFLAC.so.8
-	libfluidsynth.so.2
+	libfluidsynth.so.3
 	libinstpatch-1.0.so.2
 	libmodplug.so.1
 	libogg.so.0
@@ -35,22 +32,6 @@ required_libs=(
 	libvorbisfile.so.3
 	libXss.so.1
 )
-
-if [ ! -f "$sdl_filename" ]; then
-	curl -sSf -L -O "$sdl_url"
-	echo "c56aba1d7b5b0e7e999e4a7698c70b63a3394ff9704b5f6e1c57e0c16f04dd06  $sdl_filename" | shasum -a 256 -c
-	tar xf "$sdl_filename"
-fi
-
-pushd "SDL2-$sdl_version"
-cmake -S . -B build -DCMAKE_INSTALL_PREFIX="install"
-cmake --build build -j "$(nproc)"
-cmake --install build
-popd
-
-mkdir -p Libs/SDL2
-
-mv "SDL2-$sdl_version"/install/* Libs/SDL2/
 
 cmake -S . -B build
 cmake --build build -j "$(nproc)"
@@ -65,30 +46,12 @@ cp -a Platform/Linux/SpaceCadetPinball.desktop SpaceCadetPinball.AppDir/usr/shar
 cp -a SpaceCadetPinball/Icon_192x192.png SpaceCadetPinball.AppDir/SpaceCadetPinball.png
 cp -a /usr/share/sounds/sf2/TimGM6mb.sf2 SpaceCadetPinball.AppDir/usr/share/sounds/
 
-# Locally built SDL library
-cp -a -L Libs/SDL2/lib/libSDL2-2.0.so.0 SpaceCadetPinball.AppDir/usr/lib/
-
 # For some reason this library is not in /lib/$system_arch-linux-gnu/$lib
 cp -a -L /usr/lib/libopusfile.so.0 SpaceCadetPinball.AppDir/usr/lib/
 
 for lib in "${required_libs[@]}"; do
 	cp -a -L "/lib/$system_arch-linux-gnu/$lib" SpaceCadetPinball.AppDir/usr/lib/
 done
-
-if [ "$1" = "--prepare-github-actions" ]; then
-	tar cf "artifacts/SpaceCadetPinball-$sw_version-linux-$system_arch.tar" SpaceCadetPinball.AppDir
-
-	cd artifacts
-
-	appimagetool_filename="appimagetool-x86_64.AppImage"
-	curl -sSf -L -O "$appimagetool_baseurl/$appimagetool_filename"
-	chmod +x "$appimagetool_filename"
-
-	curl -sSf -L -O "$runtime_baseurl/$runtime_filename"
-	chmod +x "$runtime_filename"
-
-	exit 0
-fi
 
 if [ ! -f "$appimagetool_filename" ]; then
 	curl -sSf -L -O "$appimagetool_baseurl/$appimagetool_filename"
