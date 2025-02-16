@@ -10,6 +10,9 @@ jobs:
     permissions:
       contents: write
 
+    outputs:
+      new_tag: ${{ steps.set-release-tag.outputs.new_tag }}
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,7 +39,7 @@ jobs:
           fi
 
           gh release create "$new_tag"
-          echo "NEW_TAG=$new_tag" >> "$GITHUB_OUTPUT"
+          echo "new_tag=$new_tag" >> "$GITHUB_OUTPUT"
 
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -61,7 +64,7 @@ jobs:
 
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NEW_TAG: ${{ steps.set-release-tag.outputs.NEW_TAG }}
+          NEW_TAG: ${{ needs.create-new-release.outputs.new_tag }}
 
   build-linux-appimage-x86_64:
     needs: create-new-release
@@ -85,7 +88,7 @@ jobs:
 
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NEW_TAG: ${{ steps.set-release-tag.outputs.NEW_TAG }}
+          NEW_TAG: ${{ needs.create-new-release.outputs.new_tag }}
 
   build-linux-appimage-aarch64:
     needs: create-new-release
@@ -109,4 +112,4 @@ jobs:
 
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NEW_TAG: ${{ steps.set-release-tag.outputs.NEW_TAG }}
+          NEW_TAG: ${{ needs.create-new-release.outputs.new_tag }}
