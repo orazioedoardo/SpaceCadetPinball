@@ -38,7 +38,8 @@ jobs:
               new_tag="${today}00"
           fi
 
-          gh release create "$new_tag"
+          run_url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          gh release create --notes "Produced by GitHub actions run: ${run_url}" "$new_tag"
           echo "new_tag=$new_tag" >> "$GITHUB_OUTPUT"
 
         env:
