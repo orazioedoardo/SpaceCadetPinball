@@ -11,39 +11,49 @@ jobs:
       contents: write
 
     outputs:
-      new_tag: ${{ steps.set-release-tag.outputs.new_tag }}
+      latest_tag: ${{ steps.get-release-tag.outputs.latest_tag }}
 
     steps:
       - uses: actions/checkout@v4
         with:
           ref: master
 
-      - name: Set release tag and create (empty) release
-        id: set-release-tag
+      - name: Get release tag
+        id: get-release-tag
         shell: bash
         run: |
-          set -euo pipefail
+          git fetch --prune --unshallow --tags
 
-          repo_tags="$(gh api \
-              -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              /repos/${{ github.repository }}/tags)"
-
-          latest_tag="$(jq -r '.[0].name' <<< "$repo_tags")"
-          today="$(date +"%Y%m%d")"
-
-          if [ "${latest_tag::-2}" = "$today" ]; then
-              new_tag="$((latest_tag+1))"
-          else
-              new_tag="${today}00"
+          if ! latest_tag="$(git describe --tags --abbrev=0)"; then
+              echo "No tags in this branch!"
+              exit 1
           fi
 
-          run_url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          gh release create --notes "Produced by GitHub actions run: ${run_url}" "$new_tag"
-          echo "new_tag=$new_tag" >> "$GITHUB_OUTPUT"
+          releases="$(gh api \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              /repos/${{ github.repository }}/releases)"
+
+          if latest_release_tag="$(jq -e -r '.[0].tag_name' <<< "$releases")" && [ "${latest_release_tag}" = "${latest_tag}" ]; then
+              echo "A release for tag ${latest_tag} has already been created!"
+              exit 1
+          fi
+
+          echo "Setting release tag to '${latest_tag}'..."
+          echo "latest_tag=$latest_tag" >> "$GITHUB_OUTPUT"
 
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create (empty) release
+        run: |
+          run_url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          notes="Linux and macOS builds in this release were compiled and uploaded entirely by GitHub Actions following the steps in the workflow file of this repository. Together with the SHA-256 hashes of the assets being printed in the logs of the workflow run ${run_url}, this allows users to verify that said builds were produced based on the source code of the repository at a specific commit."
+          gh release create --notes "${notes}" "$LATEST_TAG"
+
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LATEST_TAG: ${{ steps.get-release-tag.outputs.latest_tag }}
 
   build-macos-universal:
     needs: create-new-release
@@ -56,17 +66,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: master
+          ref: ${{ needs.create-new-release.outputs.latest_tag }}
 
       - name: Compile macOS universal app and upload file to release
         run: |
           ./build-mac-app.sh
           openssl sha256 SpaceCadetPinball-*-mac.dmg
-          gh release upload "$NEW_TAG" SpaceCadetPinball-*-mac.dmg
+          gh release upload "$LATEST_TAG" SpaceCadetPinball-*-mac.dmg
 
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NEW_TAG: ${{ needs.create-new-release.outputs.new_tag }}
+          LATEST_TAG: ${{ needs.create-new-release.outputs.latest_tag }}
 
   build-linux-appimage-x86_64:
     needs: create-new-release
@@ -79,7 +89,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: master
+          ref: ${{ needs.create-new-release.outputs.latest_tag }}
 
       - name: Compile Linux x86_64 app and upload file to release
         run: |
@@ -87,11 +97,11 @@ jobs:
           sudo apt install -y desktop-file-utils libsdl2-dev libsdl2-mixer-dev
           ./build-linux-app.sh
           openssl sha256 SpaceCadetPinball-*-linux-x86_64.AppImage
-          gh release upload "$NEW_TAG" SpaceCadetPinball-*-linux-x86_64.AppImage
+          gh release upload "$LATEST_TAG" SpaceCadetPinball-*-linux-x86_64.AppImage
 
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NEW_TAG: ${{ needs.create-new-release.outputs.new_tag }}
+          LATEST_TAG: ${{ needs.create-new-release.outputs.latest_tag }}
 
   build-linux-appimage-aarch64:
     needs: create-new-release
@@ -104,7 +114,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: master
+          ref: ${{ needs.create-new-release.outputs.latest_tag }}
 
       - name: Compile Linux aarch64 app and upload file to release
         run: |
@@ -112,8 +122,8 @@ jobs:
           sudo apt install -y desktop-file-utils libsdl2-dev libsdl2-mixer-dev
           ./build-linux-app.sh
           openssl sha256 SpaceCadetPinball-*-linux-aarch64.AppImage
-          gh release upload "$NEW_TAG" SpaceCadetPinball-*-linux-aarch64.AppImage
+          gh release upload "$LATEST_TAG" SpaceCadetPinball-*-linux-aarch64.AppImage
 
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NEW_TAG: ${{ needs.create-new-release.outputs.new_tag }}
+          LATEST_TAG: ${{ needs.create-new-release.outputs.latest_tag }}
