@@ -4,7 +4,7 @@ set -xe
 
 system_arch="$(uname -m)"
 
-sw_version="2.1.1"
+sw_version="2.1.2"
 
 # These are rolling versions, it shouldn't be assumed that a subsequent build will use the same tool and runtime code
 appimagetool_version="continuous"

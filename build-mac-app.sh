@@ -6,11 +6,11 @@ mkdir -p Libs
 
 cd Libs
 
-sdl_version='2.30.11'
+sdl_version='2.32.0'
 sdl_filename="SDL2-$sdl_version.dmg"
 sdl_url="https://github.com/libsdl-org/SDL/releases/download/release-$sdl_version/$sdl_filename"
 
-sdl_mixer_version='2.8.0'
+sdl_mixer_version='2.8.1'
 sdl_mixer_filename="SDL2_mixer-$sdl_mixer_version.dmg"
 sdl_mixer_url="https://github.com/libsdl-org/SDL_mixer/releases/download/release-$sdl_mixer_version/$sdl_mixer_filename"
 
@@ -20,7 +20,7 @@ if [ ! -f "$sdl_filename" ]; then
 	curl -sSf -L -O "$sdl_url"
 fi
 
-echo "7b9daa7b8440e5a15f1a596df5a1ba326e3f6bf805a0307ce68ba2876192235f  $sdl_filename" | shasum -a 256 -c
+echo "731af5f5b907008688ba2191cdd29dbe30d7f7c9c8ccf4ac501bd183f3d9b8e4  $sdl_filename" | shasum -a 256 -c
 hdiutil attach "$sdl_filename" -mountpoint "$mount_point" -quiet
 cp -a "$mount_point/SDL2.framework" .
 hdiutil detach "$mount_point"
@@ -29,7 +29,7 @@ if [ ! -f "$sdl_mixer_filename" ]; then
 	curl -sSf -L -O "$sdl_mixer_url"
 fi
 
-echo "aea973d78f2949b0b2404379dfe775ac367c69485c1d25a5c59f109797f18adf  $sdl_mixer_filename" | shasum -a 256 -c
+echo "d74052391ee4d91836bf1072a060f1d821710f3498a54996c66b9a17c79a72d1  $sdl_mixer_filename" | shasum -a 256 -c
 hdiutil attach "$sdl_mixer_filename" -mountpoint "$mount_point" -quiet
 cp -a "$mount_point/SDL2_mixer.framework" .
 hdiutil detach "$mount_point"
@@ -39,7 +39,7 @@ cd ..
 cmake .
 cmake --build .
 
-sw_version='2.1.1'
+sw_version='2.1.2'
 
 mkdir -p SpaceCadetPinball.app/Contents/MacOS
 mkdir -p SpaceCadetPinball.app/Contents/Resources
