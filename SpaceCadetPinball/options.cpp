@@ -127,7 +127,7 @@ optionsStruct options::Options
 	{"Screen Resolution", -1},
 	{"UI Scale", 1.5f},
 	{"Uniform scaling", true},
-	{"Linear Filtering", false},
+	{"Linear Filtering", true},
 	{"Frames Per Second", DefFps},
 	{"Updates Per Second", DefUps},
 	{"ShowMenu", true},
