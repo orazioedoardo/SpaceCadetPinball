@@ -6,7 +6,7 @@ mkdir -p Libs
 
 cd Libs
 
-sdl_version='2.32.0'
+sdl_version='2.32.10'
 sdl_filename="SDL2-$sdl_version.dmg"
 sdl_url="https://github.com/libsdl-org/SDL/releases/download/release-$sdl_version/$sdl_filename"
 
@@ -20,7 +20,7 @@ if [ ! -f "$sdl_filename" ]; then
 	curl -sSf -L -O "$sdl_url"
 fi
 
-echo "731af5f5b907008688ba2191cdd29dbe30d7f7c9c8ccf4ac501bd183f3d9b8e4  $sdl_filename" | shasum -a 256 -c
+echo "4a7ac31640d70214e848f994be8a12849c0f97918a7e6c2e27a40036166d1a7f  $sdl_filename" | shasum -a 256 -c
 hdiutil attach "$sdl_filename" -mountpoint "$mount_point" -quiet
 cp -a "$mount_point/SDL2.framework" .
 hdiutil detach "$mount_point"
