@@ -250,11 +250,13 @@ if(EMSCRIPTEN)
         "--preload-file=${CMAKE_CURRENT_SOURCE_DIR}/assets@/"
         "--preload-file=${WEB_DIR}/music@/"
         "--shell-file=${WEB_DIR}/shell.html")
-    # Relink when the page or the data change
+    # Relink when the page or the data change (a directory in LINK_DEPENDS doesn't track its files)
+    file(GLOB_RECURSE WEB_DATA_FILES CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/*"
+        "${WEB_DIR}/music/*")
     set_property(TARGET SpaceCadetPinball APPEND PROPERTY LINK_DEPENDS
         "${WEB_DIR}/shell.html"
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets"
-        "${WEB_DIR}/music")
+        ${WEB_DATA_FILES})
     add_custom_command(TARGET SpaceCadetPinball POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/SpaceCadetPinball/Icon_192x192.png" "$<TARGET_FILE_DIR:SpaceCadetPinball>/SpaceCadetPinball.png")
