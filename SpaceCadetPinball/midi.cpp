@@ -120,7 +120,22 @@ Mix_Music* midi::load_track(std::string fileName)
 		fileName.insert(0, "SOUND");
 	}
 
+#ifdef __EMSCRIPTEN__
+	// The web build has no MIDI synth; it ships the tracks pre-rendered to Ogg Vorbis
+	// (Platform/Web/render-music.sh)
+	Mix_Music* audio = nullptr;
+	auto oggPath = pb::make_path_name(fileName + ".OGG");
+	auto oggHandle = fopenu(oggPath.c_str(), "rb");
+	if (oggHandle)
+	{
+		fclose(oggHandle);
+		audio = Mix_LoadMUS(oggPath.c_str());
+	}
+	if (!audio)
+		audio = load_track_sub(fileName, true);
+#else
 	auto audio = load_track_sub(fileName, true);
+#endif
 	if (!audio)
 		audio = load_track_sub(fileName, false);
 

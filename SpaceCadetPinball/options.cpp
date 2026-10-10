@@ -263,6 +263,10 @@ void options::toggle(Menu1 uIDCheckItem)
 		fullscrn::window_size_changed();
 		return;
 	case Menu1::Full_Screen:
+#ifdef __EMSCRIPTEN__
+		// The page handles fullscreen (Cmd+F)
+		return;
+#endif
 		Options.FullScreen ^= true;
 		fullscrn::set_screen_mode(Options.FullScreen);
 		return;

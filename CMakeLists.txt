@@ -4,7 +4,9 @@ project(SpaceCadetPinball)
 set(CMAKE_CXX_STANDARD 11)
 
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
+if(NOT EMSCRIPTEN)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMakeModules")
 
@@ -24,7 +26,9 @@ if(APPLE)
     set(CMAKE_BUILD_WITH_INSTALL_RPATH true)
     set(CMAKE_INSTALL_RPATH "@executable_path/../Frameworks")
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.11")
-    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
+    if(NOT CMAKE_OSX_ARCHITECTURES)
+        set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
+    endif()
     list(APPEND SDL2_PATH "${CMAKE_CURRENT_LIST_DIR}/Libs")
     list(APPEND SDL2_MIXER_PATH "${CMAKE_CURRENT_LIST_DIR}/Libs")
 endif()
@@ -38,8 +42,13 @@ endif()
 # SDL2main is not needed
 set(SDL2_BUILDING_LIBRARY ON)
 
-find_package(SDL2 REQUIRED)
-FIND_PACKAGE(SDL2_mixer REQUIRED)
+if(EMSCRIPTEN)
+    # SDL2 and SDL2_mixer come from Emscripten's ports
+    set(EMSCRIPTEN_SDL_FLAGS "-sUSE_SDL=2" "-sUSE_SDL_MIXER=2" "-sSDL2_MIXER_FORMATS=[\"wav\",\"ogg\"]")
+else()
+    find_package(SDL2 REQUIRED)
+    FIND_PACKAGE(SDL2_mixer REQUIRED)
+endif()
 
 include_directories(${SDL2_INCLUDE_DIR} ${SDL2_MIXER_INCLUDE_DIR})
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
@@ -223,6 +232,33 @@ if(${CMAKE_VERSION} VERSION_GREATER "3.16.0" OR ${CMAKE_VERSION} VERSION_EQUAL "
 endif()
 
 target_link_libraries(SpaceCadetPinball ${SDL2_LIBRARY} ${SDL2_MIXER_LIBRARY})
+
+if(EMSCRIPTEN)
+    set(WEB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Platform/Web")
+    set_target_properties(SpaceCadetPinball PROPERTIES SUFFIX ".html")
+    target_compile_options(SpaceCadetPinball PRIVATE ${EMSCRIPTEN_SDL_FLAGS})
+    target_link_options(SpaceCadetPinball PRIVATE
+        ${EMSCRIPTEN_SDL_FLAGS}
+        "-sASYNCIFY"
+        "-sASYNCIFY_STACK_SIZE=131072"
+        "-sSTACK_SIZE=1048576"
+        "-sALLOW_MEMORY_GROWTH"
+        "-sINVOKE_RUN=0"
+        "-sEXIT_RUNTIME"
+        "-sEXPORTED_RUNTIME_METHODS=callMain,FS,IDBFS,addRunDependency,removeRunDependency"
+        "-lidbfs.js"
+        "--preload-file=${CMAKE_CURRENT_SOURCE_DIR}/assets@/"
+        "--preload-file=${WEB_DIR}/music@/"
+        "--shell-file=${WEB_DIR}/shell.html")
+    # Relink when the page or the data change
+    set_property(TARGET SpaceCadetPinball APPEND PROPERTY LINK_DEPENDS
+        "${WEB_DIR}/shell.html"
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets"
+        "${WEB_DIR}/music")
+    add_custom_command(TARGET SpaceCadetPinball POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/SpaceCadetPinball/Icon_192x192.png" "$<TARGET_FILE_DIR:SpaceCadetPinball>/SpaceCadetPinball.png")
+endif()
 
 # On Windows, copy DLL to output
 if(WIN32)

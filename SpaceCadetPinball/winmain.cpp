@@ -12,6 +12,16 @@
 #include "translations.h"
 #include "font_selection.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+
+// Yield to the browser until the next display refresh. Presenting doesn't block on the web,
+// so this is what paces the main loop and lets the page update.
+EM_ASYNC_JS(void, WaitForAnimationFrame, (), {
+	await new Promise(resolve => requestAnimationFrame(resolve));
+});
+#endif
+
 constexpr const char* winmain::Version;
 
 SDL_Window* winmain::MainWindow = nullptr;
@@ -80,6 +90,10 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 		800, 556,
 		SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE
+#ifdef __EMSCRIPTEN__
+		// Render at the display's pixel density; the page sets the canvas size in CSS pixels
+		| SDL_WINDOW_ALLOW_HIGHDPI
+#endif
 	);
 	MainWindow = window;
 	if (!window)
@@ -119,7 +133,12 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 	bool mixOpened = false, noAudio = strstr(lpCmdLine, "-noaudio") != nullptr;
 	if (!noAudio)
 	{
+#ifdef __EMSCRIPTEN__
+		// Music is pre-rendered to Ogg Vorbis on the web
+		if ((Mix_Init(MIX_INIT_OGG) & MIX_INIT_OGG) == 0)
+#else
 		if ((Mix_Init(MIX_INIT_MID_Proxy) & MIX_INIT_MID_Proxy) == 0)
+#endif
 		{
 			printf("Could not initialize SDL MIDI, music might not work.\nSDL Error: %s\n", SDL_GetError());
 			SDL_ClearError();
@@ -255,12 +274,18 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 		{
 			Options.FullScreen = true;
 		}
+#ifdef __EMSCRIPTEN__
+		Options.FullScreen = false;
+#endif
 
+#ifndef __EMSCRIPTEN__
+		// On the web the page sizes the canvas
 		if (!Options.FullScreen)
 		{
 			auto resInfo = &fullscrn::resolution_array[fullscrn::GetResolution()];
 			SDL_SetWindowSize(MainWindow, resInfo->TableWidth, resInfo->TableHeight);
 		}
+#endif
 		SDL_ShowWindow(window);
 		fullscrn::set_screen_mode(Options.FullScreen);
 
@@ -306,6 +331,11 @@ void winmain::MainLoop()
 	double UpdateToFrameCounter = 0;
 	DurationMs sleepRemainder(0), frameDuration(TargetFrameTime);
 	auto prevTime = frameStart;
+#ifdef __EMSCRIPTEN__
+	// Simulated time: updates run in fixed steps until they catch up with the wall clock,
+	// then one frame is drawn per display refresh.
+	auto simTime = frameStart;
+#endif
 
 	while (true)
 	{
@@ -357,7 +387,8 @@ void winmain::MainLoop()
 				last_mouse_x = x;
 				last_mouse_y = y;
 			}
-			if (!single_step && !no_time_loss)
+			auto updated = !single_step && !no_time_loss;
+			if (updated)
 			{
 				auto dt = static_cast<float>(frameDuration.count());
 				pb::frame(dt);
@@ -376,7 +407,18 @@ void winmain::MainLoop()
 			}
 			no_time_loss = false;
 
-			if (UpdateToFrameCounter >= UpdateToFrameRatio)
+#ifdef __EMSCRIPTEN__
+			auto now = Clock::now();
+			if (updated)
+				simTime += std::chrono::duration_cast<Clock::duration>(frameDuration);
+			// Paused, or far behind (hidden tab, loading): drop the backlog instead of fast-forwarding
+			if (!updated || DurationMs(now - simTime) > DurationMs(250))
+				simTime = now;
+			auto renderFrame = simTime >= now;
+#else
+			auto renderFrame = UpdateToFrameCounter >= UpdateToFrameRatio;
+#endif
+			if (renderFrame)
 			{
 				if (Options.HideCursor && CursorIdleCounter <= 0)
 					ImGui::SetMouseCursor(ImGuiMouseCursor_None);
@@ -392,7 +434,11 @@ void winmain::MainLoop()
 				render::PresentVScreen();
 
 				ImGui::Render();
+				// ImGui draws in window coordinates; scale them to pixels on high-DPI displays
+				const auto& fbScale = ImGui::GetIO().DisplayFramebufferScale;
+				SDL_RenderSetScale(Renderer, fbScale.x, fbScale.y);
 				ImGui_Render_RenderDrawData(ImGui::GetDrawData());
+				SDL_RenderSetScale(Renderer, 1, 1);
 
 				SDL_RenderPresent(Renderer);
 				frameCounter++;
@@ -424,6 +470,12 @@ void winmain::MainLoop()
 				}
 			}
 
+#ifdef __EMSCRIPTEN__
+			if (renderFrame)
+				WaitForAnimationFrame();
+			frameDuration = TargetFrameTime;
+			CursorIdleCounter = std::max(CursorIdleCounter - static_cast<int>(frameDuration.count()), 0);
+#else
 			auto updateEnd = Clock::now();
 			auto targetTimeDelta = TargetFrameTime - DurationMs(updateEnd - frameStart) - sleepRemainder;
 
@@ -449,6 +501,7 @@ void winmain::MainLoop()
 			UpdateToFrameCounter++;
 
 			CursorIdleCounter = std::max(CursorIdleCounter - static_cast<int>(frameDuration.count()), 0);
+#endif
 		}
 	}
 
@@ -520,7 +573,9 @@ void winmain::RenderUi()
 		if (ImGui::BeginMenu(pb::get_rc_string(Msg::Menu1_Options)))
 		{
 			ImGuiMenuItemWShortcut(GameBindings::ToggleMenuDisplay, Options.ShowMenu);
+#ifndef __EMSCRIPTEN__
 			ImGuiMenuItemWShortcut(GameBindings::ToggleFullScreen, Options.FullScreen);
+#endif
 			if (ImGui::BeginMenu(pb::get_rc_string(Msg::Menu1_Select_Players)))
 			{
 				if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_1Player), nullptr, Options.Players == 1))

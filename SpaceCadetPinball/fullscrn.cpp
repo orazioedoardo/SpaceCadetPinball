@@ -55,6 +55,10 @@ int fullscrn::set_screen_mode(int isFullscreen)
 
 int fullscrn::enableFullscreen()
 {
+#ifdef __EMSCRIPTEN__
+	// The page handles fullscreen (Cmd+F); requestFullscreen only works from the browser's own key handler
+	return 0;
+#endif
 	if (!display_changed)
 	{
 		if (SDL_SetWindowFullscreen(winmain::MainWindow, SDL_WINDOW_FULLSCREEN_DESKTOP) == 0)
@@ -110,7 +114,10 @@ void fullscrn::window_size_changed()
 {
 	int width, height;
 	SDL_GetRendererOutputSize(winmain::Renderer, &width, &height);
-	int menuHeight = options::Options.ShowMenu ? winmain::MainMenuHeight : 0;
+	// Menu height is in window coordinates, the renderer output is in pixels
+	int menuHeight = options::Options.ShowMenu
+		                 ? static_cast<int>(winmain::MainMenuHeight * ImGui::GetIO().DisplayFramebufferScale.y)
+		                 : 0;
 	height -= menuHeight;
 	auto res = &resolution_array[resolution];
 	ScaleX = static_cast<float>(width) / res->TableWidth;
