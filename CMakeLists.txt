@@ -235,7 +235,8 @@ target_link_libraries(SpaceCadetPinball ${SDL2_LIBRARY} ${SDL2_MIXER_LIBRARY})
 
 if(EMSCRIPTEN)
     set(WEB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Platform/Web")
-    set_target_properties(SpaceCadetPinball PROPERTIES SUFFIX ".html")
+    # Builds the game's .js, .wasm and .data; the web page that runs them comes from the site hosting the game
+    set_target_properties(SpaceCadetPinball PROPERTIES SUFFIX ".js")
     target_compile_options(SpaceCadetPinball PRIVATE ${EMSCRIPTEN_SDL_FLAGS})
     target_link_options(SpaceCadetPinball PRIVATE
         ${EMSCRIPTEN_SDL_FLAGS}
@@ -248,15 +249,12 @@ if(EMSCRIPTEN)
         "-sEXPORTED_RUNTIME_METHODS=callMain,FS,IDBFS,addRunDependency,removeRunDependency"
         "-lidbfs.js"
         "--preload-file=${CMAKE_CURRENT_SOURCE_DIR}/assets@/"
-        "--preload-file=${WEB_DIR}/music@/"
-        "--shell-file=${WEB_DIR}/shell.html")
-    # Relink when the page or the data change (a directory in LINK_DEPENDS doesn't track its files)
+        "--preload-file=${WEB_DIR}/music@/")
+    # Relink when the data changes (a directory in LINK_DEPENDS doesn't track its files)
     file(GLOB_RECURSE WEB_DATA_FILES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/*"
         "${WEB_DIR}/music/*")
-    set_property(TARGET SpaceCadetPinball APPEND PROPERTY LINK_DEPENDS
-        "${WEB_DIR}/shell.html"
-        ${WEB_DATA_FILES})
+    set_property(TARGET SpaceCadetPinball APPEND PROPERTY LINK_DEPENDS ${WEB_DATA_FILES})
     add_custom_command(TARGET SpaceCadetPinball POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/SpaceCadetPinball/Icon_192x192.png" "$<TARGET_FILE_DIR:SpaceCadetPinball>/SpaceCadetPinball.png")
