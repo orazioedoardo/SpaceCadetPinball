@@ -250,14 +250,16 @@ if(EMSCRIPTEN)
         "-lidbfs.js"
         "--preload-file=${CMAKE_CURRENT_SOURCE_DIR}/assets@/"
         "--preload-file=${WEB_DIR}/music@/")
-    # Relink when the data changes (a directory in LINK_DEPENDS doesn't track its files)
+    # Relink when the data or the icon changes (the icon is copied after linking; a directory in
+    # LINK_DEPENDS doesn't track its files)
     file(GLOB_RECURSE WEB_DATA_FILES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/*"
         "${WEB_DIR}/music/*")
-    set_property(TARGET SpaceCadetPinball APPEND PROPERTY LINK_DEPENDS ${WEB_DATA_FILES})
+    set_property(TARGET SpaceCadetPinball APPEND PROPERTY LINK_DEPENDS ${WEB_DATA_FILES} "${WEB_DIR}/SpaceCadetPinball.png")
+    # The page's icon: the ball from SpaceCadetPinball/Icon_192x192.png, with room around it to match the other games' icons
     add_custom_command(TARGET SpaceCadetPinball POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/SpaceCadetPinball/Icon_192x192.png" "$<TARGET_FILE_DIR:SpaceCadetPinball>/SpaceCadetPinball.png")
+            "${WEB_DIR}/SpaceCadetPinball.png" "$<TARGET_FILE_DIR:SpaceCadetPinball>/SpaceCadetPinball.png")
 endif()
 
 # On Windows, copy DLL to output
